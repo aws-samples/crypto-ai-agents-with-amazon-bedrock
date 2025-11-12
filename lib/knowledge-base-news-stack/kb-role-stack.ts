@@ -29,6 +29,9 @@ export class KbRoleStack extends cdk.Stack {
         },
       }),
     });
+    
+    // Apply removal policy to ensure role is deleted with stack
+    this.kbRole.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY);
 
     // Add inline policies
     this.kbRole.addToPolicy(new iam.PolicyStatement({
@@ -60,9 +63,12 @@ export class KbRoleStack extends cdk.Stack {
     }));
 
     // Create SSM parameter
-    new ssm.StringParameter(this, 'kbRoleArn', {
+    const kbRoleArnParameter = new ssm.StringParameter(this, 'kbRoleArn', {
       parameterName: '/e2e-rag/kbRoleArn',
       stringValue: this.kbRole.roleArn,
     });
+    
+    // Apply removal policy to ensure parameter is deleted with stack
+    kbRoleArnParameter.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY);
   }
 }

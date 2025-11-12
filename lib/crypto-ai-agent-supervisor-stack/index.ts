@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT-0
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import * as managedblockchain from 'aws-cdk-lib/aws-managedblockchain';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
 import { bedrock as bedrockGenAIConstructs} from '@cdklabs/generative-ai-cdk-constructs';
@@ -26,12 +25,6 @@ export class CryptoAIAgentSupervisorStack extends cdk.Stack {
       keyUsage: cdk.aws_kms.KeyUsage.SIGN_VERIFY
     });
 
-    // Create accessor token for Managed Blockchain
-    const accessorToken = new managedblockchain.CfnAccessor(this, 'AMBAccessorToken', {
-      accessorType: "BILLING_TOKEN",
-      networkType: 'POLYGON_MAINNET',
-    });
-
     const guardrail = new bedrockGenAIConstructs.Guardrail(this, 'bedrockGuardrails', {
       name: 'agent-guardrail',
       description: 'Guardrails to protect against malicious use of the agent.',
@@ -43,7 +36,7 @@ export class CryptoAIAgentSupervisorStack extends cdk.Stack {
 
     // We use cross region inference to improve inference performance
     const cris = bedrockGenAIConstructs.CrossRegionInferenceProfile.fromConfig({
-      geoRegion: bedrockGenAIConstructs.CrossRegionInferenceProfileRegion.US,
+      geoRegion: bedrockGenAIConstructs.CrossRegionInferenceProfileRegion.EU,
       model: bedrockGenAIConstructs.BedrockFoundationModel.AMAZON_NOVA_PRO_V1,
     });
     
@@ -75,18 +68,16 @@ export class CryptoAIAgentSupervisorStack extends cdk.Stack {
 
     agent.addKnowledgeBase(props.knowledgeBase);
 
-    const baseEnvironment = {
-      AMB_ACCESSOR_TOKEN: accessorToken.getAtt('BillingToken').toString(),
-      COINGECKO_API_KEY: config.coinGeckoAPIKey,
-    };
+    // Validate that BLOCKCHAIN_RPC_URL is provided
+    if (!config.blockchainRPCURL) {
+      throw new Error('BLOCKCHAIN_RPC_URL environment variable is required');
+    }
 
     const lambdaEnvironment = {
-      ...baseEnvironment,
-      ...(config.blockchainRPCURL && {
-        BLOCKCHAIN_RPC_URL: process.env.BLOCKCHAIN_RPC_URL
-      }),
+      BLOCKCHAIN_RPC_URL: config.blockchainRPCURL,
+      COINGECKO_API_KEY: config.coinGeckoAPIKey,
       ...(config.unstoppableDomainsAddress && {
-        UNSTOPPABLE_DOMAINS_ADDRESS: process.env.UNSTOPPABLE_DOMAINS_ADDRESS
+        UNSTOPPABLE_DOMAINS_ADDRESS: config.unstoppableDomainsAddress
       }),
     };
 
@@ -106,10 +97,7 @@ export class CryptoAIAgentSupervisorStack extends cdk.Stack {
         platform: ecrAssets.Platform.LINUX_AMD64,
       }),
       timeout: cdk.Duration.seconds(300),
-      environment: {
-        AMB_ACCESSOR_TOKEN: accessorToken.getAtt('BillingToken').toString(),
-        COINGECKO_API_KEY: config.coinGeckoAPIKey
-      },
+      environment: lambdaEnvironment,
       memorySize: 512
     });
 
@@ -205,6 +193,25 @@ export class CryptoAIAgentSupervisorStack extends cdk.Stack {
 
       agent.addActionGroup(actionGroupWalletManagement);
       agent.addActionGroup(actionGroupInvestmentAdvice);
+
+      // Output the Agent ID and Agent Alias ID for easy access
+      new cdk.CfnOutput(this, 'AgentId', {
+        value: agent.agentId,
+        description: 'Bedrock Agent ID for CryptoAI Supervisor Agent',
+        exportName: 'CryptoAIAgentId',
+      });
+
+      new cdk.CfnOutput(this, 'AgentAliasId', {
+        value: agentAlias.aliasId,
+        description: 'Bedrock Agent Alias ID for CryptoAI Supervisor Agent',
+        exportName: 'CryptoAIAgentAliasId',
+      });
+
+      new cdk.CfnOutput(this, 'KmsWalletKeyId', {
+        value: kmsWallet.keyId,
+        description: 'KMS Key ID for the crypto wallet',
+        exportName: 'CryptoAIWalletKeyId',
+      });
 
   }
 }

@@ -9,37 +9,36 @@ from pyasn1.type import namedtype, univ
 aws_region = boto3.session.Session().region_name
 
 # the KMS alias for the agent's wallet
-KMS_KEY_ALIAS='alias/crypto-ai-agent-wallet'
+KMS_KEY_ALIAS = "alias/crypto-ai-agent-wallet"
+
 
 def getUnstoppableDomainsAddress():
     # Default is Polygon mainnet
-    return os.environ.get('UNSTOPPABLE_DOMAINS_ADDRESS', '0xa2c203d7a6931f5368fb935cf1bffa7fa4c8360e')
+    return os.environ.get(
+        "UNSTOPPABLE_DOMAINS_ADDRESS", "0xa2c203d7a6931f5368fb935cf1bffa7fa4c8360e"
+    )
+
 
 def getBlockchainRPCURL():
-    # use a blockchain rpc endpoint if it has been provided
-    blockchain_rpc_url = os.environ.get('BLOCKCHAIN_RPC_URL')
-    if blockchain_rpc_url:
-        return blockchain_rpc_url
-    # else return the AMB endpoint
-    #AMB accessor token
-    amb_accessor_token = os.environ.get('AMB_ACCESSOR_TOKEN')
-    if not amb_accessor_token:
-        raise ValueError("AMB_ACCESSOR_TOKEN environment variable is not set")
-    #We use Polygon here
-    blockchain_rpc_url = f"https://mainnet.polygon.managedblockchain.us-east-1.amazonaws.com/?billingtoken={amb_accessor_token}"
+    # Get blockchain RPC endpoint from environment variable
+    blockchain_rpc_url = os.environ.get("BLOCKCHAIN_RPC_URL")
+    if not blockchain_rpc_url:
+        raise ValueError("BLOCKCHAIN_RPC_URL environment variable is not set")
     return blockchain_rpc_url
+
 
 w3 = Web3(Web3.HTTPProvider(getBlockchainRPCURL()))
 # Adding middleware to support ENS resolution on non-mainnet EVM chains
 from web3.middleware import ExtraDataToPOAMiddleware
+
 w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
 # Get and set chain ID
 chain_id = w3.eth.chain_id
 print(f"Connected to network with chain ID: {chain_id}")
 
-#CoinGecko private key for making calls
-coingecko_api_key = os.environ.get('COINGECKO_API_KEY')
+# CoinGecko private key for making calls
+coingecko_api_key = os.environ.get("COINGECKO_API_KEY")
 if not coingecko_api_key:
     raise ValueError("COINGECKO_API_KEY environment variable is not set")
 
@@ -50,25 +49,27 @@ vitalikaddr = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 if not w3.is_connected():
     raise ConnectionError("Failed to connect to HTTPProvider")
 
+
 # Get the KMS key by alias
 def get_kms_key():
     print("in get_kms_key")
-    kms_client = boto3.client('kms')
+    kms_client = boto3.client("kms")
     print("in get_kms_key, got kms_client")
     try:
-        kms_key = kms_client.describe_key(
-            KeyId='alias/crypto-ai-agent-wallet'
-        )['KeyMetadata']['KeyId']
+        kms_key = kms_client.describe_key(KeyId="alias/crypto-ai-agent-wallet")[
+            "KeyMetadata"
+        ]["KeyId"]
         print(f"Found KMS key: {kms_key}")
         return kms_key
     except Exception as e:
         print(f"Error getting KMS key: {e}")
         raise
 
+
 # Given a public key, calculate the Ethereum wallet address
 def calc_eth_address(pub_key) -> str:
     print("in calc_eth_address. about to import asn1tools")
-    SUBJECT_ASN = '''
+    SUBJECT_ASN = """
     Key DEFINITIONS ::= BEGIN
 
     SubjectPublicKeyInfo  ::=  SEQUENCE  {
@@ -82,28 +83,30 @@ def calc_eth_address(pub_key) -> str:
       }
 
     END
-    '''
-    
+    """
+
     try:
         import asn1tools
+
         print("in calc_eth_address. imported asn1tools")
         key = asn1tools.compile_string(SUBJECT_ASN)
         print("in calc_eth_address. compiled string to key")
-        key_decoded = key.decode('SubjectPublicKeyInfo', pub_key)
+        key_decoded = key.decode("SubjectPublicKeyInfo", pub_key)
         print(f"key_decoded: {key_decoded}")
-        pub_key_raw = key_decoded['subjectPublicKey'][0]
-        pub_key = pub_key_raw[1:len(pub_key_raw)]
+        pub_key_raw = key_decoded["subjectPublicKey"][0]
+        pub_key = pub_key_raw[1 : len(pub_key_raw)]
 
         hex_address = w3.keccak(bytes(pub_key)).hex()
-        eth_address = '0x{}'.format(hex_address[-40:])
+        eth_address = "0x{}".format(hex_address[-40:])
         print(f"eth_address: {eth_address}")
         eth_checksum_addr = w3.to_checksum_address(eth_address)
         print(f"eth_checksum_addr: {eth_checksum_addr}")
         return eth_checksum_addr
     except Exception as e:
         print(f"Error calculating Ethereum address: {str(e)}")
-        print(f"Exception type: {type(e).__name__}")   
+        print(f"Exception type: {type(e).__name__}")
         raise
+
 
 # Get the wallet address for the agent's KMS key
 def get_wallet_address():
@@ -113,113 +116,94 @@ def get_wallet_address():
         key_id = get_kms_key()
         print("got key_id")
         # Get the public key using the key ID
-        kms_client = boto3.client('kms')
-        public_key_response = kms_client.get_public_key(
-            KeyId=key_id
-        )
+        kms_client = boto3.client("kms")
+        public_key_response = kms_client.get_public_key(KeyId=key_id)
         print(f"Retrieved public key response: {public_key_response}")
-        
+
         # Extract the public key bytes (removes DER encoding)
-        public_key_bytes = public_key_response['PublicKey']
+        public_key_bytes = public_key_response["PublicKey"]
         print(f"Extracted public key bytes: {public_key_bytes}")
 
         eth_address = calc_eth_address(public_key_bytes)
         print(f"eth_address: {eth_address}")
         return eth_address
-        
+
     except Exception as e:
         print(f"Error getting wallet address: {e}")
         raise
+
 
 # Resolve domain address
 def resolve_domain(domain):
 
     print(f"Resolving domain: {domain}")
-    
+
     # if it's already an address then just return
-    if domain and isinstance(domain, str) and domain.startswith('0x') and len(domain) == 42:
+    if (
+        domain
+        and isinstance(domain, str)
+        and domain.startswith("0x")
+        and len(domain) == 42
+    ):
         return domain
-        
+
     try:
         unstoppable_domains_address = getUnstoppableDomainsAddress()
-        
+
         # ABI configuration
         abi = [
             {
                 "constant": True,
                 "inputs": [
-                    {
-                        "internalType": "string[]",
-                        "name": "keys",
-                        "type": "string[]"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "tokenId",
-                        "type": "uint256"
-                    }
+                    {"internalType": "string[]", "name": "keys", "type": "string[]"},
+                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
                 ],
                 "name": "getData",
                 "outputs": [
-                    {
-                        "internalType": "address",
-                        "name": "resolver",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "owner",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "string[]",
-                        "name": "values",
-                        "type": "string[]"
-                    }
+                    {"internalType": "address", "name": "resolver", "type": "address"},
+                    {"internalType": "address", "name": "owner", "type": "address"},
+                    {"internalType": "string[]", "name": "values", "type": "string[]"},
                 ],
                 "payable": False,
                 "stateMutability": "view",
-                "type": "function"
+                "type": "function",
             }
         ]
-        
+
         # Initialize contract
-        contract = w3.eth.contract(
-            address=unstoppable_domains_address,
-            abi=abi
-        )
-        
+        contract = w3.eth.contract(address=unstoppable_domains_address, abi=abi)
+
         # Implement namehashing
         def namehash(name):
             if not name:
-                return b'\0' * 32
-            
-            if name.startswith('.'):
+                return b"\0" * 32
+
+            if name.startswith("."):
                 name = name[1:]
-                
-            labels = name.split('.')
+
+            labels = name.split(".")
             labels.reverse()
-            
-            node = b'\0' * 32
+
+            node = b"\0" * 32
             for label in labels:
-                label_hash = w3.keccak(label.encode('utf-8'))
+                label_hash = w3.keccak(label.encode("utf-8"))
                 node = w3.keccak(node + label_hash)
-                
+
             return node.hex()
-            
+
         # Generate tokenId and resolve
         token_id = int(namehash(domain), 16)
         result = contract.functions.getData([], token_id).call()
-        
+
         # Check if owner was found
-        if result[1] == '0x0000000000000000000000000000000000000000':
+        if result[1] == "0x0000000000000000000000000000000000000000":
             print(f"Domain {domain} not found")
             return None
-            
+
         resolved_address = result[1]
         print(f"Resolved {domain} to {resolved_address}")
         return resolved_address
-        
+
     except Exception as e:
         print(f"An error occurred while resolving domain: {e}")
         return None
@@ -227,12 +211,15 @@ def resolve_domain(domain):
 
 class KMSSignature(univ.Sequence):
     componentType = namedtype.NamedTypes(
-        namedtype.NamedType('r', univ.Integer()),
-        namedtype.NamedType('s', univ.Integer())
+        namedtype.NamedType("r", univ.Integer()),
+        namedtype.NamedType("s", univ.Integer()),
     )
 
+
 # Returns the v,r,s of the KMS signature
-def parse_kms_signature(kms_signature_bytes, transaction_hash, expected_address, chain_id):
+def parse_kms_signature(
+    kms_signature_bytes, transaction_hash, expected_address, chain_id
+):
     print(f"kms_signature_bytes {kms_signature_bytes}")
     print(f"Transaction hash: {transaction_hash.hex()}")
     print(f"Expected address: {expected_address}")
@@ -241,9 +228,10 @@ def parse_kms_signature(kms_signature_bytes, transaction_hash, expected_address,
 
     try:
         from pyasn1.codec.der import decoder
+
         signature, _ = decoder.decode(kms_signature_bytes, asn1Spec=KMSSignature())
-        r = int(signature['r'])
-        s = int(signature['s'])
+        r = int(signature["r"])
+        s = int(signature["s"])
     except Exception as e:
         print(f"Failed to decode signature: {e}")
         return None
@@ -251,20 +239,21 @@ def parse_kms_signature(kms_signature_bytes, transaction_hash, expected_address,
     print(f"Signature r: {r}")
     print(f"Signature s: {s}")
     print(f"Signature: {signature}")
-    
-    for recovery_id in [0,1]:
+
+    for recovery_id in [0, 1]:
         try:
             print(f"Attempting recovery with recovery_id={recovery_id}")
-            
+
             # Create signature using eth_keys
             from eth_keys import KeyAPI
+
             keys = KeyAPI()
             sig = keys.Signature(vrs=(recovery_id, r, s))
             print("got signature. now recovering public key")
             recovered_pub_key = sig.recover_public_key_from_msg_hash(transaction_hash)
             print(f"Recovered public key: {recovered_pub_key}")
             recovered_address = Web3.to_checksum_address(recovered_pub_key.to_address())
-            
+
             print(f"Trying recovery_id={recovery_id}, recovered: {recovered_address}")
             print(f"Expected: {expected_address}")
 
@@ -277,8 +266,9 @@ def parse_kms_signature(kms_signature_bytes, transaction_hash, expected_address,
             print(f"Error serializing transaction: {str(e)}")
             print(f"Exception type: {type(e).__name__}")
             continue
-    
+
     raise ValueError("Could not determine correct v value")
+
 
 def sign_kms(key_id: str, msg_hash: bytes) -> dict:
     client = boto3.client("kms")
@@ -291,36 +281,45 @@ def sign_kms(key_id: str, msg_hash: bytes) -> dict:
     )
 
     return response
-   
+
+
 def sendTx(receiver, amount):
     print("Sending transaction in sendTx")
     from_address = get_wallet_address()
-    
+
     print(f"Original receiver: {receiver}")
-    
+
     # Check if it's an ENS domain, if so resolve it
-    if not (receiver and isinstance(receiver, str) and receiver.startswith('0x') and len(receiver) == 42):
+    if not (
+        receiver
+        and isinstance(receiver, str)
+        and receiver.startswith("0x")
+        and len(receiver) == 42
+    ):
         resolved_address = resolve_domain(receiver)
         if resolved_address:
             receiver = resolved_address
         else:
             return "Failed to resolve receiver address"
-    
+
     print(f"Final receiver address: {receiver}")
 
     # Define transaction parameters
     transaction = {
-            'to': receiver,
-            'value': w3.to_wei(amount, 'ether'),
-            'gas': 21000,  # 
-            'gasPrice': w3.to_wei(150, 'gwei'),
-            'nonce': w3.eth.get_transaction_count(from_address),
-            'chainId': chain_id,
+        "to": receiver,
+        "value": w3.to_wei(amount, "ether"),
+        "gas": 21000,  #
+        "gasPrice": w3.to_wei(150, "gwei"),
+        "nonce": w3.eth.get_transaction_count(from_address),
+        "chainId": chain_id,
     }
 
     print(f"Transaction details: {transaction}")
 
-    from eth_account._utils.legacy_transactions import serializable_unsigned_transaction_from_dict, encode_transaction
+    from eth_account._utils.legacy_transactions import (
+        serializable_unsigned_transaction_from_dict,
+        encode_transaction,
+    )
 
     unsigned_tx = ""
     # Create the unsigned transaction
@@ -359,28 +358,26 @@ def sendTx(receiver, amount):
     except Exception as e:
         print(f"Error sending transaction: {str(e)}")
 
+
 def investAdviceMetric():
     url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365&interval=daily"
-    headers = {
-        "accept": "application/json",
-        "x-cg-demo-api-key": coingecko_api_key
-    }
-    
+    headers = {"accept": "application/json", "x-cg-demo-api-key": coingecko_api_key}
+
     response = requests.get(url, headers=headers)
     data = response.json()
-    
-    prices = [price[1] for price in data['prices']]
+
+    prices = [price[1] for price in data["prices"]]
     current_price = prices[-1]
-    all_time_high = max(prices)  
-    
+    all_time_high = max(prices)
+
     # Calculate 200-day moving average
     ma_200 = sum(prices[-200:]) / min(200, len(prices))
-    
+
     ath_ratio = current_price / all_time_high
     ma_ratio = current_price / ma_200
-    
+
     sbci = (ath_ratio + ma_ratio) / 2
-        
+
     print(f"Current Price: ${current_price:.2f}")
     print(f"All Time High: ${all_time_high:.2f}")
     print(f"200-day Moving Average: ${ma_200:.2f}")
@@ -391,7 +388,7 @@ def investAdviceMetric():
     print("0.50 - 0.75: Fair Value")
     print("0.75 - 1.00: Overvalued")
     print("1.00+: Extremely Overvalued")
-        
+
     if sbci <= 0.25:
         return "The market appears extremely undervalued. Consider investing but be aware of potential further downside."
     elif sbci <= 0.50:
@@ -403,7 +400,8 @@ def investAdviceMetric():
     else:
         return "The market appears extremely overvalued. This might be a good time to take significant profits."
 
-def estimate_gas(to_address, value, data='', gas_price=None):
+
+def estimate_gas(to_address, value, data="", gas_price=None):
 
     from_address = get_wallet_address()
 
@@ -412,15 +410,15 @@ def estimate_gas(to_address, value, data='', gas_price=None):
 
     # Prepare transaction data
     transaction = {
-        'from': from_address,
-        'to': to_address,
-        'value': w3.to_wei(value, 'ether'),  
-        'data': data,
+        "from": from_address,
+        "to": to_address,
+        "value": w3.to_wei(value, "ether"),
+        "data": data,
     }
 
     # If gas price is provided, add it to the transaction
     if gas_price:
-        transaction['gasPrice'] = w3.to_wei(gas_price, 'gwei')
+        transaction["gasPrice"] = w3.to_wei(gas_price, "gwei")
 
     try:
         # Estimate
@@ -430,49 +428,50 @@ def estimate_gas(to_address, value, data='', gas_price=None):
         print(f"Error estimating gas: {e}")
         return None
 
-    
+
 def getBalance(address):
 
     if not address:
         address = get_wallet_address()
-    elif not (address and isinstance(address, str) and address.startswith('0x') and len(address) == 42):
+    elif not (
+        address
+        and isinstance(address, str)
+        and address.startswith("0x")
+        and len(address) == 42
+    ):
         resolved_address = resolve_domain(address)
         if resolved_address:
             address = resolved_address
         else:
             return "Failed to resolve address"
-    
+
     balance = w3.eth.get_balance(address)
 
     # Convert balance from Wei to Ether
-    ether_balance = w3.from_wei(balance, 'ether')
-    
+    ether_balance = w3.from_wei(balance, "ether")
+
     print(f"Account {address} has a balance of {ether_balance} Ether")
-    
+
     return ether_balance
+
 
 def getWalletAddress():
     print("in getWalletAddress")
     address = get_wallet_address()
     return address
-    
+
+
 def getCryptoPrice(token):
-    
+
     url = "https://api.coingecko.com/api/v3/coins/markets"
-    
-    params = {
-    "vs_currency": "usd",
-    "ids": token.lower()
-    }
-    headers = {
-        "accept": "application/json",
-        "x-cg-demo-api-key": coingecko_api_key
-    }
-    
+
+    params = {"vs_currency": "usd", "ids": token.lower()}
+    headers = {"accept": "application/json", "x-cg-demo-api-key": coingecko_api_key}
+
     response = requests.get(url, params=params, headers=headers)
-    
+
     print(response.text)
-    
+
     if response.status_code == 200:
         data = response.json()
         if data:
@@ -483,96 +482,68 @@ def getCryptoPrice(token):
     else:
         return f"Error: {response.status_code} - {response.text}"
 
+
 def lambda_handler(event, context):
     print(f"Function timeout: {context.get_remaining_time_in_millis()/1000} seconds")
     print(f"Function memory: {context.memory_limit_in_mb} MB")
     print(f"Event: {event}")
-    agent = event['agent']
-    actionGroup = event['actionGroup']
-    function = event['function']    
+    agent = event["agent"]
+    actionGroup = event["actionGroup"]
+    function = event["function"]
 
     if function == "sendTx":
-        parameters = {param['name']: param['value'] for param in event['parameters']}
-    
-        print (parameters)
-        
-        amount = parameters.get('amount')
-        receiver = parameters.get('receiver')
-        
-        result = sendTx(receiver,amount)
-        responseBody =  {
-        "TEXT": {
-            "body": result
-        }
-    }
-    
+        parameters = {param["name"]: param["value"] for param in event["parameters"]}
+
+        print(parameters)
+
+        amount = parameters.get("amount")
+        receiver = parameters.get("receiver")
+
+        result = sendTx(receiver, amount)
+        responseBody = {"TEXT": {"body": result}}
+
     elif function == "estimateGas":
         value = 0.000001  # ETH
         result = estimate_gas(vitalikaddr, value)
 
-        responseBody =  {
-        "TEXT": {
-            "body": result
-        }
-    }
+        responseBody = {"TEXT": {"body": result}}
 
-    elif function =="getBalance":
-        parameters = {param['name']: param['value'] for param in event['parameters']}
-    
-        print (parameters)
-        address = parameters.get('walletAddress')
+    elif function == "getBalance":
+        parameters = {param["name"]: param["value"] for param in event["parameters"]}
+
+        print(parameters)
+        address = parameters.get("walletAddress")
         result = getBalance(address)
-        responseBody =  {
-        "TEXT": {
-            "body": result
-        }
-    }
-    
-    elif function =="getCryptoPrice":
-        parameters = {param['name']: param['value'] for param in event['parameters']}
-    
-        print (parameters)
-        token = parameters.get('token')
+        responseBody = {"TEXT": {"body": result}}
+
+    elif function == "getCryptoPrice":
+        parameters = {param["name"]: param["value"] for param in event["parameters"]}
+
+        print(parameters)
+        token = parameters.get("token")
         result = getCryptoPrice(token)
-        responseBody =  {
-        "TEXT": {
-            "body": result
-        }
-    }
-    elif function =="investAdviceMetric":
+        responseBody = {"TEXT": {"body": result}}
+    elif function == "investAdviceMetric":
 
         result = investAdviceMetric()
-        responseBody =  {
-        "TEXT": {
-            "body": result
-        }
-    }
-    elif function =="getWalletAddress":
+        responseBody = {"TEXT": {"body": result}}
+    elif function == "getWalletAddress":
         print("in handler, getting getWalletAddress")
         result = getWalletAddress()
-        responseBody =  {
-        "TEXT": {
-            "body": result
-        }
-    }
+        responseBody = {"TEXT": {"body": result}}
     else:
-        responseBody =  {
-        "TEXT": {
-            "body": f"Function {function} not found"
-        }
-    }
-        
+        responseBody = {"TEXT": {"body": f"Function {function} not found"}}
 
     action_response = {
-        'actionGroup': actionGroup,
-        'function': function,
-        'functionResponse': {
-            'responseBody': responseBody
-        }
-
+        "actionGroup": actionGroup,
+        "function": function,
+        "functionResponse": {"responseBody": responseBody},
     }
 
-    function_response = {'response': action_response, 'messageVersion': event['messageVersion']}
+    function_response = {
+        "response": action_response,
+        "messageVersion": event["messageVersion"],
+    }
     print("Response: {}".format(function_response))
 
     return function_response

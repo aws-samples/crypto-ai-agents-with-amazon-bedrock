@@ -6,6 +6,15 @@ node_modules
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+riv25dry/
 
+# Environment files
 .env
 myenv
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
