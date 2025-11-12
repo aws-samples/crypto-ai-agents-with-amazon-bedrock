@@ -15,7 +15,6 @@ This repository presents a solution architecture for foundational building block
 - [Amazon Bedrock Knowledge Bases](https://aws.amazon.com/bedrock/knowledge-bases/) for news aggregation 
 - The [Amazon Nova](https://aws.amazon.com/ai/generative-ai/nova/) family of models for state-of-the-art language processing
 - [AWS Key Management Service](https://aws.amazon.com/kms/) (AWS KMS) for secure wallet management
-- [Amazon Managed Blockchain](https://aws.amazon.com/managed-blockchain/) for network access
 - [Amazon OpenSearch Serverless](https://aws.amazon.com/opensearch-service/features/serverless/) for vectorized data storage
 
 ## Solution Architecture
@@ -55,9 +54,9 @@ Copy `.env.sample` to a new `.env` file
 cp .env.sample .env
 ```
 
-Update `.env` with the appropriate values, including the AWS `ACCOUNT_ID`.
+Update `.env` with the appropriate values, including the AWS `ACCOUNT_ID` and `BLOCKCHAIN_RPC_URL`.
 
-The solution defaults to using Polygon mainnet and accesses it via Amazon Managed Blockchain. If you want to use a different EVM-compatible network, specify the RPC endpoint in the `BLOCKCHAIN_RPC_URL` variable in the `.env`.
+You will need to provide a blockchain RPC endpoint in the `BLOCKCHAIN_RPC_URL` variable. This can be from any provider such as [Alchemy](https://www.alchemy.com/), [Infura](https://www.infura.io/), or [QuickNode](https://www.quicknode.com/). The solution is configured for Polygon mainnet by default, but you can use any EVM-compatible network.
 
 (Optional) If you want your agent to query current cryptocurrency prices, you will need to obtain a [CoinGecko API key](https://www.coingecko.com/en/developers/dashboard)
 
