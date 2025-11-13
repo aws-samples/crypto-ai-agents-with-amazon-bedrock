@@ -1,5 +1,5 @@
 aws-lambda-powertools==2.32.0
-requests==2.32.0
+requests==2.32.4
 boto3==1.36.15
 web3==7.8.0
 eth-account==0.13.5
