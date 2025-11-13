@@ -1,0 +1,21 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "bedrock:*",
+                "bedrock-agentcore:*",
+                "ecr:*",
+                "iam:CreateRole",
+                "iam:AttachRolePolicy",
+                "iam:CreatePolicy",
+                "iam:GetRole",
+                "iam:PassRole",
+                "logs:*",
+                "xray:*"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

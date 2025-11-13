@@ -10,15 +10,56 @@ Engaging with cryptocurrencies on-chain using AI agents presents several technic
 - Preventing hallucinations through reliable data sources
 - Managing secure blockchain interactions
 
-This repository presents a solution architecture for foundational building blocks for a Crypto AI Agent. The solution leverages several AWS services:
-- [Amazon Bedrock Agents](https://aws.amazon.com/bedrock/agents/) for creating supervisor and collaborator agents
-- [Amazon Bedrock Knowledge Bases](https://aws.amazon.com/bedrock/knowledge-bases/) for news aggregation 
-- The [Amazon Nova](https://aws.amazon.com/ai/generative-ai/nova/) family of models for state-of-the-art language processing
-- [AWS Key Management Service](https://aws.amazon.com/kms/) (AWS KMS) for secure wallet management
-- [Amazon OpenSearch Serverless](https://aws.amazon.com/opensearch-service/features/serverless/) for vectorized data storage
+## Repository Contents
 
-## Solution Architecture
-The Crypto AI Agent is designed with the following capabilities:
+This repository provides **two complementary approaches** to building Web3 AI agents on AWS:
+
+### 🎓 [Workshop: AgentCore + Strands Agents](workshop/README.md)
+**Best for:** Learning modern agent development patterns with containerized deployments
+
+A hands-on workshop teaching you to build streaming Web3 agents using:
+- **Amazon Bedrock AgentCore** - Managed agent runtime platform
+- **Strands Agents Framework** - Modern Python agent framework
+- **Docker-based deployment** - Containerized agent packaging
+- **Progressive modules** - From basic agents to multi-agent orchestration
+
+**What you'll build:**
+- Memory-enabled streaming agents
+- Browser automation for web scraping
+- Agent-to-agent communication patterns
+- KMS-secured wallet integration
+
+👉 **[Start the Workshop →](workshop/README.md)**
+
+---
+
+### 🏗️ Bedrock Agents-Based Solution (This Directory)
+**Best for:** Deploying a complete, ready-to-use multi-agent system
+
+A comprehensive AWS CDK application implementing a full-featured Crypto AI Agent system with:
+- **Amazon Bedrock Agents** - Supervisor and collaborator agent architecture
+- **Amazon Bedrock Knowledge Bases** - News aggregation and RAG
+- **AWS KMS** - Secure wallet management
+- **Amazon OpenSearch Serverless** - Vector storage
+- **Amazon Athena** - Historical blockchain data queries
+
+**Key capabilities:**
+- Real-time token price analysis
+- On-chain wallet operations
+- Gas fee estimation
+- Investment recommendations
+- Multi-agent orchestration
+- News aggregation
+
+👉 **[Deploy the Bedrock Agents Solution →](#deploy-the-bedrock-agents-solution)**
+
+---
+
+## Deploy the CDK Solution
+
+### Solution Architecture
+
+The CDK solution implements a complete multi-agent system with the following capabilities:
 
 - Analyze token market data, including real-time token prices
 - Estimate gas fees for submitting transactions
@@ -32,12 +73,14 @@ The following diagram illustrates the solution architecture and how the various 
 
 ![Architecture Diagram](images/architecture.png)
 
+**Architecture Components:**
+
 1. The supervisor agent coordinates actions across its own action groups and other collaborator agents to fulfill user requests
 2. A Bedrock knowledge base that contains current blockchain news and trends
 3. A collaborator agent specializing in accessing historic bitcoin and ethereum data
 4. Action group used by the supervisor agent to complete wallet related actions such as querying balances and sending transactions
 
-## Deploy the solution
+### Deployment Steps
 
 The solution is an [AWS CDK](https://aws.amazon.com/cdk/) application. Follow the steps below to deploy it. You will need to have [Docker](https://www.docker.com/) running.
 
