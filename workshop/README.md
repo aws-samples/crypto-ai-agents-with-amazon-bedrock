@@ -25,7 +25,7 @@ The architecture consists of three main layers:
 
 ### AgentCore & Strands Integration
 
-![AgentCore Strands Architecture](./assets/digital_asset_custody_generic-agentcore_strands.drawio.png)
+![AgentCore Strands Architecture](./assets/agentcore_strands_web3.drawio.png)
 
 
 ## Development Workflow
