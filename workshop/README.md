@@ -1604,7 +1604,13 @@ chmod +x workshop/code/cleanup.sh
 
 ### Resources
 
+**Web3/Custody**
+- [Build crypto AI agents on Amazon Bedrock](https://aws.amazon.com/blogs/web3/build-crypto-ai-agents-on-amazon-bedrock/)
+- [How to sign Ethereum EIP-1559 transactions using AWS KMS](https://aws.amazon.com/blogs/database/how-to-sign-ethereum-eip-1559-transactions-using-aws-kms/)
+- [Securing applications with AWS Nitro Enclaves: TLS termination, TAP networking, and IMDSv2](https://aws.amazon.com/blogs/compute/securing-applications-with-aws-nitro-enclaves-tls-termination-tap-networking-and-imdsv2/)
+
+**Agentic AI**
 - [Strands Agents Documentation](https://strandsagents.com)
 - [Amazon Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html)
-- [Crypto AI Agents Sample](https://github.com/aws-samples/crypto-ai-agents-with-amazon-bedrock)
 - [Agentic AI Patterns](https://docs.aws.amazon.com/prescriptive-guidance/latest/agentic-ai-serverless/)
+- [Amazon Bedrock AgentCore Samples](https://github.com/awslabs/amazon-bedrock-agentcore-samples)
