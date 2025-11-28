@@ -47,7 +47,7 @@ agent = Agent(
         Be friendly and professional.""",
     hooks=[memory_hooks],
     state={"actor_id": user_id, "session_id": session_id},
-    model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    model=os.environ["INFERENCE_PROFILE"],
 )
 
 @app.entrypoint

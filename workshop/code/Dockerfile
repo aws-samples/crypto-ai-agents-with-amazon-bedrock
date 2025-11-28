@@ -14,11 +14,20 @@ RUN uv pip install aws-opentelemetry-distro>=0.10.1
 # Set AWS region environment variables
 ENV AWS_REGION=us-east-1
 
+# Set the cross region inference profile
+ENV INFERENCE_PROFILE=us.anthropic.claude-sonnet-4-20250514-v1:0
+
+# Set agent_id for a2a 
+ENV AGENT_ID=my_agent_id
+
+# Set agent_alias_id for a2a
+ENV AGENT_ALIAS_ID=my_agent_alias_id
+
 # Signal that this is running in Docker for host binding logic
 ENV DOCKER_CONTAINER=1
 
 # MemoryID
-ENV MEMORY_ID="Web3AnalystMemory-0OZZp7Doxi"
+ENV MEMORY_ID="Web3AnalystMemory-Ewqgx8579v"
 
 # Create non-root user for security
 RUN useradd -m -u 1000 bedrock_agentcore
@@ -32,4 +41,4 @@ EXPOSE 8000
 COPY . .
 
 # Default command - can be overridden for different agent types
-CMD ["opentelemetry-instrument", "python", "-m", "strands_agents_streaming_memory"]
+CMD ["opentelemetry-instrument", "python", "-m", "strands_agents_streaming_memory_a2a"]

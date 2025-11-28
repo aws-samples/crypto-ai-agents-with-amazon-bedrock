@@ -119,7 +119,7 @@ Ensure that `uv` is in your `$PATH` and create a local development environment:
 ```bash
 uv init
 uv venv
-uv add boto3
+uv add boto3 bedrock_agentcore botocore
 ```
 
 **Note**: After installing `uv`, you may need to restart your terminal or run `source ~/.bashrc` (Linux/macOS) to update your PATH.
@@ -211,6 +211,11 @@ except Exception as e:
 
 📄 **[View full code: create_web3_agent_memory.py](./code/create_web3_agent_memory.py)**
 
+Set the following environment variables:
+```bash
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity | jq -r '.Account')
+export AWS_REGION=us-east-1
+```
 
 Run the `create_web3_agent_memory.py` script to create a new memory database. Remember the `MemoryID` for the `Dockerfile` later.
 ```bash
@@ -391,7 +396,7 @@ agent = Agent(
         Be friendly and professional.""",
     hooks=[memory_hooks],
     state={"actor_id": user_id, "session_id": session_id},
-    model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    model=os.environ["INFERENCE_PROFILE"],
 )
 
 @app.entrypoint
@@ -443,7 +448,7 @@ First, verify your Docker installation:
 docker --version
 ```
 
-Create a `Dockerfile` for containerizing the agent, ensure to provide the right `MEMORY_ID` and `AWS_REGION`:
+Create a `Dockerfile` for containerizing the agent, ensure to provide the right `MEMORY_ID` and `AWS_REGION`. Also update your cross-region inference profile according to your selected deployment region "**us**`.anthropic.claude-sonnet-4-20250514-v1:0`":
 
 ```dockerfile
 FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
@@ -461,6 +466,9 @@ RUN uv pip install aws-opentelemetry-distro>=0.10.1
 
 # Set AWS region environment variables
 ENV AWS_REGION=us-east-1
+
+# Set the cross region inference profile
+ENV INFERENCE_PROFILE=us.anthropic.claude-sonnet-4-20250514-v1:0
 
 # Signal that this is running in Docker for host binding logic
 ENV DOCKER_CONTAINER=1
@@ -486,11 +494,6 @@ CMD ["opentelemetry-instrument", "python", "-m", "strands_agents_streaming_memor
 📄 **[View full code: Dockerfile](./code/Dockerfile)**
 
 ### Step 4: Deploy to AWS
-
-```bash
-export AWS_ACCOUNT_ID=$(aws sts get-caller-identity | jq -r '.Account')
-export AWS_REGION=us-east-1
-```
 
 #### Create ECR Repository
 
@@ -1098,7 +1101,7 @@ agent = Agent(
     Be friendly and professional.""",
     hooks=[memory_hooks],
     state={"actor_id": user_id, "session_id": session_id},
-    model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    model=os.environ["INFERENCE_PROFILE"],
 )
 
 
@@ -1311,7 +1314,7 @@ uv run update_agent_runtime_role_agent_invoke.py
 
 ### Step 2: Implement Agent-to-Agent Communication
 
-Create `strands_agents_streaming_memory_a2a.py` for inter-agent communication. Update `agentId="<agentId>"` and `agentAliasId="<agentAliasId>"` first:
+Create `strands_agents_streaming_memory_a2a.py` for inter-agent communication. Update `AGENT_ID="<agentId>"` and `AGENT_ALIAS_ID="<agentAliasId>"` in the `Dockerfile` first:
 
 ```python
 import asyncio
@@ -1345,8 +1348,8 @@ def invoke_bedrock_agent(prompt: str) -> dict:
     """Invoke a Bedrock Agent Runtime Agent with the given payload."""
     try:
         response = bedrock_agent_runtime_client.invoke_agent(
-            agentId="<agentId>",
-            agentAliasId="<agentAliasId>",
+            agentId=os.environ["AGENT_ID"],
+            agentAliasId=os.environ["AGENT_ALIAS_ID"],
             sessionId=session_id,
             inputText=prompt,
         )   
@@ -1402,7 +1405,7 @@ agent = Agent(
         Be friendly and professional.""",
     # hooks=[memory_hooks],
     state={"actor_id": user_id, "session_id": session_id, "version": version},
-    model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    model=os.environ["INFERENCE_PROFILE"],
 )
 
 
