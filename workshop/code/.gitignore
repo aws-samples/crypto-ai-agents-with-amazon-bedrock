@@ -1,0 +1,15 @@
+# workshop/code/.gitignore
+venv/
+.venv/
+env/
+.uv/
+uv.lock
+__pycache__/
+*.py[cod]
+.python-version
+*.egg-info/
+dist/
+build/
+main.py
+README.md
+pyproject.toml

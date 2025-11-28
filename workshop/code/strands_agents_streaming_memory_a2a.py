@@ -29,8 +29,8 @@ def invoke_bedrock_agent(prompt: str) -> dict:
     """Invoke a Bedrock Agent Runtime Agent with the given payload."""
     try:
         response = bedrock_agent_runtime_client.invoke_agent(
-            agentId="ZSZGSBPYSZ",
-            agentAliasId="IXREV3KVVN",
+            agentId=os.environ["AGENT_ID"],
+            agentAliasId=os.environ["AGENT_ALIAS_ID"],
             sessionId=session_id,
             inputText=prompt,
         )   
@@ -86,7 +86,7 @@ agent = Agent(
         Be friendly and professional.""",
     # hooks=[memory_hooks],
     state={"actor_id": user_id, "session_id": session_id, "version": version},
-    model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+    model=os.environ["INFERENCE_PROFILE"],
 )
 
 
