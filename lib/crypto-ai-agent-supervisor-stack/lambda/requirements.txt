@@ -3,7 +3,7 @@ requests==2.32.4
 boto3==1.36.15
 web3==7.8.0
 eth-account==0.13.5
-cryptography==44.0.1
+cryptography==46.0.5
 eth-keys==0.5.0
 pyasn1==0.5.1
 asn1tools==0.166.0
